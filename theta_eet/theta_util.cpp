@@ -29,9 +29,6 @@ static void get_raw_pixel(const IplImage* in_img, const int u, const int v, CvSc
 		col_bgr->val[COL_B] = (unsigned char)(in_img->imageData[in_img->widthStep*vv + in_img->nChannels*uu + 0]);
 		col_bgr->val[COL_G] = (unsigned char)(in_img->imageData[in_img->widthStep*vv + in_img->nChannels*uu + 1]);
 		col_bgr->val[COL_R] = (unsigned char)(in_img->imageData[in_img->widthStep*vv + in_img->nChannels*uu + 2]);
-		//col_bgr->val[COL_B] = 0;
-		//col_bgr->val[COL_G] = 0;
-		//col_bgr->val[COL_R] = 0;
 	}
 }
 

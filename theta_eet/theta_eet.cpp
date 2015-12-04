@@ -1,44 +1,21 @@
 // theta_eet.cpp : コンソール アプリケーションのエントリ ポイントを定義します。
 //
 
-/*
-http://www.subblue.com/blog/2010/6/17/little_planets
-http://mathworld.wolfram.com/StereographicProjection.html
-*/
-
 #include "stdafx.h"
+
+// opencv 2.4.1
 #include <opencv_lib.h>
 #include <opencv2/opencv.hpp>
+
 #include "theta_util.h"
 #include "equi_lv.h"
+#include "theta_eet.h"
 
-#define		ROT_PER_SEC	(-360.0f/24.0/3600.0/180.0*M_PI)	// [rad]
+///////////////////////////////////////////////////////////////////////////////
 #define		KEY_ESC	'\x1b'
 
 ///////////////////////////////////////////////////////////////////////////////
-CvPoint g_prev_mp = cvPoint(0, 0);
-//double g_data_equi_rot[] = { 0, 0, 0 };
-#define		NP_ROT	(-360.0f/24.0/3600.0*8/180.0*M_PI)
-//float g_data_equi_rot[] = { 
-//	-0.647755259, 
-//	-0.582477697,
-//	-0.491052804 };
-float g_data_equi_rot[] = {
-	0.620081225,
-	-0.548749271,
-	-0.56069021 };
-//float g_data_equi_rot[] = { M_PI*10/180, 0, 0 };
-//float g_data_equi_rot[] = { 0.904508497*M_PI * 45 / 180.0, 0.309016994 * M_PI * 45 / 180, -0.293892626 * M_PI * 45 / 180 };
-CvMat g_equi_angle = cvMat(3, 1, CV_32F, g_data_equi_rot);
 
-///////////////////////////////////////////////////////////////////////////////
-
-typedef struct {
-	float np_x;
-	float np_y;
-	float rot_vec[3];	// rotation unit vector
-	float interval_time;
-} THETA_EET_CFG_T;
 
 void calc_rot_vec(THETA_EET_CFG_T* cfg, const int width, const int height)
 {
@@ -59,6 +36,29 @@ int isExpo2(const int n)
 			return 1;
 
 	return 0;
+}
+
+void write_composite_image(const cv::Mat& composite_img, const int n_frame)
+{
+	cv::Mat temp_out_img = cv::Mat(composite_img.rows, composite_img.cols, CV_32FC3);
+
+	printf(" write composite image\n");
+	temp_out_img = composite_img * 1 / (double)(n_frame + 1);
+	char filename[256];
+	sprintf(filename, "composite_%04d.tiff", n_frame + 1);
+	temp_out_img.convertTo(temp_out_img, CV_8UC3);
+	cv::imwrite(filename, temp_out_img);
+
+	temp_out_img.release();
+}
+
+//void write_rotated_equi_image(const cv::Mat& equi_rot_img, const int n_frame) {
+void write_rotated_equi_image(const IplImage* equi_rot_img, const int n_frame) {
+	printf(" write rotated equi image\n");
+	char filename[256];
+	sprintf(filename, "equi_rot_%04d.tiff", n_frame + 1);
+	//cv::imwrite(filename, equi_rot_img);
+	cvSaveImage(filename, equi_rot_img);
 }
 
 void theta_eet(FILE* fp_config, THETA_EET_CFG_T* cfg)
@@ -84,7 +84,7 @@ void theta_eet(FILE* fp_config, THETA_EET_CFG_T* cfg)
 	frame = cvLoadImage(equi_img_fn);
 	height = frame->height;
 	width = frame->width;
-	composite_img = cv::Mat::zeros(height, width, CV_16UC3);
+	composite_img = cv::Mat::zeros(height, width, CV_32FC3);
 	//equi_rot_img = cv::Mat::zeros(height, width, CV_8UC3);
 	equi_rot_img = cvCreateImage(cvSize(width, height), IPL_DEPTH_8U, 3);
 
@@ -114,49 +114,32 @@ void theta_eet(FILE* fp_config, THETA_EET_CFG_T* cfg)
 		//c = cvWaitKey(0);
 
 		// rotate equi_image
-		{
-			CvMat* rot = cvCreateMat(3, 1, CV_32F);
+		CvMat* rot_vec = cvCreateMat(3, 1, CV_32F);
 
-			cvmSet(rot, 0, 0, cfg->rot_vec[0] * n_frame * cfg->interval_time * ROT_PER_SEC);
-			cvmSet(rot, 1, 0, cfg->rot_vec[1] * n_frame * cfg->interval_time * ROT_PER_SEC);
-			cvmSet(rot, 2, 0, cfg->rot_vec[2] * n_frame * cfg->interval_time * ROT_PER_SEC);
+		cvmSet(rot_vec, 0, 0, cfg->rot_vec[0] * n_frame * cfg->interval_time * ROT_PER_SEC);
+		cvmSet(rot_vec, 1, 0, cfg->rot_vec[1] * n_frame * cfg->interval_time * ROT_PER_SEC);
+		cvmSet(rot_vec, 2, 0, cfg->rot_vec[2] * n_frame * cfg->interval_time * ROT_PER_SEC);
 			
-			//equi_rot(&((IplImage)frame), &((IplImage)equi_rot_img), rot);
-			equi_rot(frame, equi_rot_img, rot);
+		//equi_rot(&((IplImage)frame), &((IplImage)equi_rot_img), rot);
+		equi_rot(frame, equi_rot_img, rot_vec);
 
-			cv::Mat equi_rot_img_mat = cv::cvarrToMat(equi_rot_img);
-			cv::Mat equi_rot_img_16U = cv::Mat(height, width, CV_16UC3);
-			equi_rot_img_mat.convertTo(equi_rot_img_16U, CV_16UC3);
-			cv::add(equi_rot_img_16U, composite_img, composite_img);
-			equi_rot_img_16U.release();
+		cv::Mat equi_rot_img_mat = cv::cvarrToMat(equi_rot_img);
+		cv::Mat equi_rot_img_32F = cv::Mat(height, width, CV_32FC3);
+		equi_rot_img_mat.convertTo(equi_rot_img_32F, CV_32FC3);
+		cv::add(equi_rot_img_32F, composite_img, composite_img);
+		equi_rot_img_32F.release();
+		equi_rot_img_mat.release();
+		cvReleaseMat(&rot_vec);
 
-			cvReleaseMat(&rot);
-		}
-
-		// write composite image
+		// write composite image when n_fram+1 = 1, 2, 4, 8, 16, ...
 		if ( isExpo2(n_frame+1) ) {
-			cv::Mat temp_out_img = cv::Mat(height, width, CV_16UC3);
-
-			printf(" write composite image\n");
-			temp_out_img = composite_img * 1 / (double)(n_frame + 1);
-			char filename[256];
-			sprintf(filename, "composite_%04d.tiff", n_frame + 1);
-			temp_out_img.convertTo(temp_out_img, CV_8UC3);
-			cv::imwrite(filename, temp_out_img);
-
-			temp_out_img.release();
+			write_composite_image(composite_img, n_frame);
 		}
 
 		// write rotated equi_img
-		{
-			printf(" write rotated equi image\n");
-			char filename[256];
-			sprintf(filename, "equi_rot_%04d.tiff", n_frame + 1);
-			//cv::imwrite(filename, equi_rot_img);
-			cvSaveImage(filename, equi_rot_img);
-		}
+		write_rotated_equi_image(equi_rot_img, n_frame);
 
-		//n_frame += 127;
+		// ready for next image
 		n_frame++;
 
 		if ( !fgets(buf, sizeof(buf), fp_config) )
@@ -168,13 +151,6 @@ void theta_eet(FILE* fp_config, THETA_EET_CFG_T* cfg)
 
 	}
 
-	//cvSaveImage("out.tiff", equi_img);
-	//IplImage* cross_img = cvCreateImage(cvSize(640, 320), IPL_DEPTH_8U, 3);
-	//for (double y = 0; y < cross_img->height; y += cross_img->height / 10.0)
-	//	cvDrawLine(cross_img, cvPoint(0, y), cvPoint(cross_img->width, y), CV_RGB(rand() % 255, rand() % 255, rand() % 255), 1);
-	//for (double x = 0; x < cross_img->width; x += cross_img->width / 20.0)
-	//	cvDrawLine(cross_img, cvPoint(x, 0), cvPoint(x, cross_img->height), CV_RGB(rand() % 255, rand() % 255, rand() % 255), 1);
-	//cvSaveImage("cross.jpg", cross_img);
 	//frame.release();
 	frame_preview.release();
 	composite_img.release();
@@ -207,10 +183,6 @@ int main(int argc, char* argv[])
 
 	FILE* fp_config;
 	THETA_EET_CFG_T cfg;
-
-	//
-	//int file_num = 12034;
-	//int file_num = 12179;
 
 	usage(argc, argv);
 
