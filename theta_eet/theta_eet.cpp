@@ -127,16 +127,12 @@ void theta_eet_mat(FILE* fp_config, THETA_EET_CFG_T* cfg)
 		//cvmSet(rot_vec, 0, 0, cfg->rot_vec[0] * n_frame * cfg->interval_time * ROT_PER_SEC);
 		//cvmSet(rot_vec, 1, 0, cfg->rot_vec[1] * n_frame * cfg->interval_time * ROT_PER_SEC);
 		//cvmSet(rot_vec, 2, 0, cfg->rot_vec[2] * n_frame * cfg->interval_time * ROT_PER_SEC);
-		printf("rot_vec\n");
 		rot_vec.at<float>(0, 0) = cfg->rot_vec[0] * n_frame * cfg->interval_time * ROT_PER_SEC;
 		rot_vec.at<float>(1, 0) = cfg->rot_vec[1] * n_frame * cfg->interval_time * ROT_PER_SEC;
 		rot_vec.at<float>(2, 0) = cfg->rot_vec[2] * n_frame * cfg->interval_time * ROT_PER_SEC;
-		printf("rot_vec\n");
 
 		//equi_rot(&((IplImage)frame), &((IplImage)equi_rot_img), rot_vec);
-		printf("equi_rot\n");
 		equi_rot(frame, equi_rot_img, rot_vec);
-		printf("equi_rot\n");
 
 		//cv::Mat equi_rot_img_mat = cv::cvarrToMat(equi_rot_img);
 		cv::Mat equi_rot_img_32F = cv::Mat(height, width, CV_32FC3);
@@ -167,6 +163,8 @@ void theta_eet_mat(FILE* fp_config, THETA_EET_CFG_T* cfg)
 			break;
 
 	}
+
+	write_composite_image(composite_img, n_frame-1);
 
 	frame.release();
 	frame_preview.release();
