@@ -32,6 +32,33 @@ static void get_raw_pixel(const IplImage* in_img, const int u, const int v, CvSc
 	}
 }
 
+static void get_raw_pixel(const cv::Mat& in_img, const int u, const int v, cv::Scalar& col_bgr)
+{
+	if (0 <= u && u<in_img.cols && 0 <= v && v < in_img.rows) {
+		for (int c = 0; c<3; c++) {
+			col_bgr.val[c] = (unsigned char)(in_img.data[v*in_img.step + u*in_img.elemSize() + c]);
+		}
+	}
+	else {
+		int uu = u;
+		int vv = v;
+
+		if (u < 0)
+			uu = 0;
+		else if (in_img.cols <= u)
+			uu = u % in_img.cols;
+
+		if (v < 0)
+			vv = 0;
+		else if (in_img.rows <= v)
+			vv = v % in_img.rows;
+
+		for (int c = 0; c<3; c++) {
+			col_bgr.val[c] = (unsigned char)(in_img.data[vv*in_img.step + uu*in_img.elemSize() + c]);
+		}
+	}
+}
+
 // Purpose:
 //   ‰æ‘f•âŠÔƒ‚[ƒh‚É‡‚í‚¹‚Ä‰æ‘f’lŽæ“¾
 void get_pixel(
@@ -67,6 +94,39 @@ void get_pixel(
 	}
 }
 
+void get_pixel(
+	const cv::Mat& in_img,
+	const double ud,
+	const double vd,
+	cv::Scalar& col_bgr,
+	const int pix_inter_mode)
+{
+	int u = (int)ud;
+	int v = (int)vd;
+	cv::Scalar pix_t, pix_b, pix_l, pix_r;
+	double ph_x = ud - u;
+	double ph_y = vd - v;
+
+	switch (pix_inter_mode) {
+	case PIX_INTER_NONE:
+		get_raw_pixel(in_img, u, v, col_bgr);
+		break;
+	case PIX_INTER_BILINER:
+		get_raw_pixel(in_img, u, v - 1, pix_t);
+		get_raw_pixel(in_img, u, v + 1, pix_b);
+		get_raw_pixel(in_img, u - 1, v, pix_l);
+		get_raw_pixel(in_img, u + 1, v, pix_r);
+
+		for (int i = 0; i < 3; i++) { // COL_B, COL_G, COL_R
+			col_bgr.val[i] = 0.5 * (pix_t.val[i] * (1 - ph_y) + pix_b.val[i] * ph_y +
+				pix_l.val[i] * (1 - ph_x) + pix_r.val[i] * ph_x);
+		}
+		break;
+	default:
+		break;
+	}
+}
+
 // Purpose: 
 //	 Dual fisheye‹«ŠE•t‹ß‚ðalpha blending‚µ‚Ä‰æ‘f’lŽæ“¾
 // Input:
@@ -77,6 +137,7 @@ void get_pixel(
 //   dfe_r     : ŽQÆ‰æ‘fˆÊ’u‚Ì”¼Œa
 // Output:
 //   col_bgr   : alpha blendingŒã‚Ì‰æ‘f’l
+/*
 void get_dfe_pixel(
 	const IplImage* dfe_img,
 	const double ud,
@@ -145,6 +206,7 @@ void get_dfe_pixel(
 	
 
 }
+*/
 
 void set_pixel(IplImage* out_img, const int x, const int y, const CvScalar* col_bgr)
 {
@@ -158,6 +220,16 @@ void set_pixel(IplImage* out_img, const int x, const int y, const CvScalar* col_
 	}
 }
 
+void set_pixel(cv::Mat& out_img, const int x, const int y, const cv::Scalar& col_bgr)
+{
+	if (0 <= x && x<out_img.cols && 0 <= y && y<out_img.rows) {
+		for (int c = 0; c < 3; c++) {
+			out_img.data[y*out_img.step + x*out_img.elemSize() + c] = (unsigned char)col_bgr.val[c];
+		}
+	}
+	else {
+	}
+}
 
 double rad2deg(const double rad) { return rad / M_PI*180.0f; }
 double deg2rad(const double deg) { return deg / 180.0f*M_PI; }
@@ -172,6 +244,16 @@ void lnglat_to_sph(
 	cvmSet(sph_1, SPH_X, 0, cos(lat) * cos(lng));	// Z‚©‚çXŽ²•ûŒü‚ðŠp“x³
 	cvmSet(sph_1, SPH_Y, 0, sin(lat));				// “V’¸Šp‚ÆˆÜ“x‚ÍŒü‚«‚ª‹t
 	cvmSet(sph_1, SPH_Z, 0, -cos(lat) * sin(lng));
+}
+
+void lnglat_to_sph(
+	const double lng,
+	const double lat,
+	cv::Mat& sph_1)
+{
+	sph_1.at<float>(SPH_X, 0) = cos(lat) * cos(lng);
+	sph_1.at<float>(SPH_Y, 0) = sin(lat);
+	sph_1.at<float>(SPH_Z, 0) = -cos(lat) * sin(lng);
 }
 
 

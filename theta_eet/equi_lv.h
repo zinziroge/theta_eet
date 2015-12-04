@@ -16,5 +16,10 @@ void equi_rot(
 	IplImage* out_equi_img,
 	const CvMat* angle_np
 	);
+void equi_rot(
+	const cv::Mat& in_equi_img,
+	cv::Mat& out_equi_img,
+	const cv::Mat& angle_np
+	);
 
 #endif

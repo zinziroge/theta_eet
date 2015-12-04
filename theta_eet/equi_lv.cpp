@@ -64,3 +64,51 @@ void equi_rot(
 
 	cvReleaseMat(&rot);
 }
+
+void equi_rot(
+	const cv::Mat& in_equi_img,
+	cv::Mat& out_equi_img,
+	const cv::Mat& angle_np
+	)
+{
+	cv::Mat rot = cv::Mat::zeros(3, 3, CV_32F);
+
+	cv::Rodrigues(angle_np, rot);
+#pragma omp parallel for
+	for (int y = 0; y < out_equi_img.rows; y++) {
+		for (int x = 0; x < out_equi_img.cols; x++) {
+			double lng, lat;
+			double u, v;
+			cv::Scalar col_bgr;
+			cv::Mat sph_1 = cv::Mat(3, 1, CV_32F);	// X, Y, Z
+			cv::Mat sph_2 = cv::Mat(3, 1, CV_32F);
+
+			// xy(equi)->lnglat
+			equi_xy_to_lnglat(x, y, out_equi_img.cols, out_equi_img.rows, &lng, &lat);
+
+			// lnglat->sph_1(‰º‚ªYŽ²)
+			lnglat_to_sph(lng, lat, sph_1);
+
+			// sph_1 -> sph_2
+			//cvMatMul(rot, sph_1, sph_2);
+			sph_2 = rot * sph_1;
+
+			// sph_2 -> lnglat
+			lng = atan2(-sph_2.at<float>(SPH_Z, 0), sph_2.at<float>(SPH_X, 0));
+			lat = asin(sph_2.at<float>(SPH_Y, 0));
+			lng = lng / M_PI * 180;
+			lat = lat / M_PI * 180;
+			u = (lng + 180) / 360.0 * in_equi_img.cols;
+			v = (lat + 90) / 180.0 * in_equi_img.rows;
+
+			// pixel
+			get_pixel(in_equi_img, u, v, col_bgr);
+			set_pixel(out_equi_img, x, y, col_bgr);
+
+			sph_1.release();
+			sph_2.release();
+		}
+	}
+
+	rot.release();
+}

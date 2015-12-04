@@ -7,43 +7,8 @@
 #include <stdlib.h>
 #include <math.h>
 
+#include <opencv_lib.h>
 #include <opencv2/opencv.hpp>
-
-//#include "little_planet.hpp"
-
-/*****************************************************************************/
-// Visual Studio 2013
-#ifdef _DEBUG
-//Debugモードの場合
-#pragma comment(lib,"C:\\opencv\\build\\x86\\vc12\\lib\\opencv_calib3d2410d.lib")
-#pragma comment(lib,"C:\\opencv\\build\\x86\\vc12\\lib\\opencv_core2410d.lib")
-#pragma comment(lib,"C:\\opencv\\build\\x86\\vc12\\lib\\opencv_imgproc2410d.lib")
-#pragma comment(lib,"C:\\opencv\\build\\x86\\vc12\\lib\\opencv_highgui2410d.lib")
-#pragma comment(lib,"C:\\opencv\\build\\x86\\vc12\\lib\\opencv_objdetect2410d.lib")
-#pragma comment(lib,"C:\\opencv\\build\\x86\\vc12\\lib\\opencv_contrib2410d.lib")
-#pragma comment(lib,"C:\\opencv\\build\\x86\\vc12\\lib\\opencv_features2d2410d.lib")
-#pragma comment(lib,"C:\\opencv\\build\\x86\\vc12\\lib\\opencv_flann2410d.lib")
-#pragma comment(lib,"C:\\opencv\\build\\x86\\vc12\\lib\\opencv_gpu2410d.lib")
-//#pragma comment(lib,"C:\\opencv\\build\\x86\\vc12\\lib\\opencv_haartraining_engined.lib")
-#pragma comment(lib,"C:\\opencv\\build\\x86\\vc12\\lib\\opencv_legacy2410d.lib")
-#pragma comment(lib,"C:\\opencv\\build\\x86\\vc12\\lib\\opencv_ts2410d.lib")
-#pragma comment(lib,"C:\\opencv\\build\\x86\\vc12\\lib\\opencv_video2410d.lib")
-#else
-//Releaseモードの場合
-#pragma comment(lib,"C:\\opencv\\build\\x86\\vc12\\lib\\opencv_calib3d2410.lib")
-#pragma comment(lib,"C:\\opencv\\build\\x86\\vc12\\lib\\opencv_core2410.lib")
-#pragma comment(lib,"C:\\opencv\\build\\x86\\vc12\\lib\\opencv_imgproc2410.lib")
-#pragma comment(lib,"C:\\opencv\\build\\x86\\vc12\\lib\\opencv_highgui2410.lib")
-#pragma comment(lib,"C:\\opencv\\build\\x86\\vc12\\lib\\opencv_objdetect2410.lib")
-#pragma comment(lib,"C:\\opencv\\build\\x86\\vc12\\lib\\opencv_contrib2410.lib")
-#pragma comment(lib,"C:\\opencv\\build\\x86\\vc12\\lib\\opencv_features2d2410.lib")
-#pragma comment(lib,"C:\\opencv\\build\\x86\\vc12\\lib\\opencv_flann2410.lib")
-#pragma comment(lib,"C:\\opencv\\build\\x86\\vc12\\lib\\opencv_gpu2410.lib")
-//#pragma comment(lib,"C:\\opencv\\build\\x86\\vc12\\lib\\opencv_haartraining_engined.lib")
-#pragma comment(lib,"C:\\opencv\\build\\x86\\vc12\\lib\\opencv_legacy2410.lib")
-#pragma comment(lib,"C:\\opencv\\build\\x86\\vc12\\lib\\opencv_ts2410.lib")
-#pragma comment(lib,"C:\\opencv\\build\\x86\\vc12\\lib\\opencv_video2410.lib")
-#endif
 
 ///////////////////////////////////////////////////////////////////////////////
 typedef struct {
@@ -89,7 +54,18 @@ typedef struct {
 int max(int a, int b);
 int min(int a, int b);
 
-void get_pixel(const IplImage* in_img, const double u, const double v, CvScalar* col_bgr, const int pix_inter_mode = PIX_INTER_BILINER);
+void get_pixel(
+	const IplImage* in_img, 
+	const double u, 
+	const double v, 
+	CvScalar* col_bgr, 
+	const int pix_inter_mode = PIX_INTER_BILINER);
+void get_pixel(
+	const cv::Mat& in_img,
+	const double ud,
+	const double vd,
+	cv::Scalar& col_bgr,
+	const int pix_inter_mode = PIX_INTER_BILINER);
 void get_dfe_pixel(
 	const IplImage* dfe_img,
 	const double ud,
@@ -101,6 +77,7 @@ void get_dfe_pixel(
 	const double dfe_r);
 
 void set_pixel(IplImage* out_img, const int x, const int y, const CvScalar* col_bgr);
+void set_pixel(cv::Mat& out_img, const int x, const int y, const cv::Scalar& col_bgr);
 
 void create_rot_mat(CvMat* rot_x, CvMat* rot_y, CvMat* rot_z, double ang_x, double ang_y, double ang_z);
 
@@ -129,6 +106,10 @@ void lnglat_to_sph(
 	const double lng,
 	const double lat,
 	CvMat* sph_1);
+void lnglat_to_sph(
+	const double lng,
+	const double lat,
+	cv::Mat& sph_1);
 
 void sph_to_dfe_uv(
 	const CvMat* sph,
